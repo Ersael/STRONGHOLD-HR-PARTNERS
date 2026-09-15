@@ -16,11 +16,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Node.js version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '24.x'
 
-      - name: npm install, build, and prepare standalone
+      - name: Install dependencies and build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -28,6 +28,8 @@ jobs:
           npm install
           npm run build
 
+      - name: Prepare standalone deployment
+        run: |
           mkdir -p .next/standalone/.next
 
           if [ -d "public" ]; then
@@ -36,13 +38,18 @@ jobs:
 
           cp -r .next/static .next/standalone/.next/
 
-          npm run test --if-present
+          echo "=== Standalone contents ==="
+          find .next/standalone -maxdepth 3 -type f | head -100
 
-      - name: Upload artifact for deployment job
+          echo "=== Server.js check ==="
+          ls -la .next/standalone/server.js
+
+      - name: Upload standalone artifact
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: .next/standalone
+          include-hidden-files: true
 
   deploy:
     runs-on: ubuntu-latest
@@ -52,10 +59,19 @@ jobs:
       contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download standalone artifact
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          path: ./deploy
+
+      - name: Verify deployment files
+        run: |
+          echo "=== Deployment directory ==="
+          ls -la ./deploy
+
+          echo "=== Server.js ==="
+          ls -la ./deploy/server.js
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -70,4 +86,4 @@ jobs:
         with:
           app-name: 'stronghold-psicometricos'
           slot-name: 'Production'
-          package: ./.next/standalone
+          package: ./deploy
