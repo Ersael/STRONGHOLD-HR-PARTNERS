@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "lint": "eslint",
     "seed:admin": "tsx scripts/seed-admin.ts",
     "smoke:scoring": "tsx scripts/smoke-test-scoring.ts"
